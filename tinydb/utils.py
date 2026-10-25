@@ -4,6 +4,7 @@ Utility functions.
 
 from collections import OrderedDict, abc
 from collections.abc import Iterator
+import threading
 from typing import TypeVar, Generic, Union, Optional, TYPE_CHECKING, cast
 
 K = TypeVar('K')
@@ -57,64 +58,74 @@ class LRUCache(abc.MutableMapping, Generic[K, V]):
     def __init__(self, capacity=None) -> None:
         self.capacity = capacity
         self.cache: OrderedDict[K, V] = OrderedDict()
+        self._lock = threading.RLock()
 
     @property
     def lru(self) -> list[K]:
-        return list(self.cache.keys())
+        with self._lock:
+            return list(self.cache.keys())
 
     @property
     def length(self) -> int:
-        return len(self.cache)
+        with self._lock:
+            return len(self.cache)
 
     def clear(self) -> None:
-        self.cache.clear()
+        with self._lock:
+            self.cache.clear()
 
     def __len__(self) -> int:
         return self.length
 
     def __contains__(self, key: object) -> bool:
-        return key in self.cache
+        with self._lock:
+            return key in self.cache
 
     def __setitem__(self, key: K, value: V) -> None:
         self.set(key, value)
 
     def __delitem__(self, key: K) -> None:
-        del self.cache[key]
+        with self._lock:
+            del self.cache[key]
 
     def __getitem__(self, key) -> V:
-        value = self.cache.get(key, _missing)
-        if value is _missing:
-            raise KeyError(key)
+        with self._lock:
+            value = self.cache.get(key, _missing)
+            if value is _missing:
+                raise KeyError(key)
 
-        self.cache.move_to_end(key, last=True)
-
-        return cast(V, value)
-
-    def __iter__(self) -> Iterator[K]:
-        return iter(self.cache)
-
-    def get(self, key: K, default: Optional[D] = None) -> Optional[Union[V, D]]:
-        value = self.cache.get(key, _missing)
-
-        if value is not _missing:
             self.cache.move_to_end(key, last=True)
 
             return cast(V, value)
 
-        return default
+    def __iter__(self) -> Iterator[K]:
+        with self._lock:
+            return iter(list(self.cache.keys()))
+
+    def get(self, key: K, default: Optional[D] = None) -> Optional[Union[V, D]]:
+        with self._lock:
+            value = self.cache.get(key, _missing)
+
+            if value is not _missing:
+                self.cache.move_to_end(key, last=True)
+
+                return cast(V, value)
+
+            return default
 
     def set(self, key: K, value: V):
-        if key in self.cache:
-            self.cache[key] = value
-            self.cache.move_to_end(key, last=True)
-        else:
-            self.cache[key] = value
+        with self._lock:
+            if key in self.cache:
+                self.cache[key] = value
+                self.cache.move_to_end(key, last=True)
+            else:
+                self.cache[key] = value
 
-            # Check, if the cache is full and we have to remove old items
-            # If the queue is of unlimited size, self.capacity is NaN and
-            # x > NaN is always False in Python and the cache won't be cleared.
-            if self.capacity is not None and self.length > self.capacity:
-                self.cache.popitem(last=False)
+                # Check, if the cache is full and we have to remove old items
+                # If the queue is of unlimited size, self.capacity is NaN and
+                # x > NaN is always False in Python and the cache won't be cleared.
+                if self.capacity is not None and self.length > self.capacity:
+                    self.cache.popitem(last=False)
 
 
 class FrozenDict(dict):
