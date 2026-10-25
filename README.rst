@@ -41,6 +41,10 @@ TinyDB is:
 - **powerfully extensible:** You can easily extend TinyDB by writing new
   storages or modify the behaviour of storages with Middlewares.
 
+- **thread-safe:** Built-in thread safety across storages, tables, and caches
+  makes this project safe to use in multi-threaded web applications and frameworks
+  like Flask without any changes to API usage from original TinyDB.
+
 - **100% test coverage:** No explanation needed.
 
 To dive straight into all the details, head over to the `TinyDB docs

@@ -29,6 +29,10 @@ Why Use TinyDB?
 
 - **100% test coverage:** No explanation needed.
 
+- **thread-safe:** Built-in thread safety across storage, tables, and caches
+  means this fork is safe to use in multi-threaded applications and web frameworks
+  like Flask without any changes to API usage.
+
 In short: If you need a simple database with a clean API that just works
 without lots of configuration, TinyDB might be the right choice for you.
 
@@ -37,13 +41,20 @@ Why **Not** Use TinyDB?
 -----------------------
 
 - You need **advanced features** like:
-    - access from multiple processes or threads (e.g. when using Flask!),
+    - access from multiple processes simultaneously (IPC/distributed writes across separate OS processes),
     - creating indexes for tables,
-    - an HTTP server,
     - managing relationships between tables or similar,
     - `ACID guarantees <https://en.wikipedia.org/wiki/ACID>`_.
 - You are really concerned about **performance** and need a high speed
   database.
+
+.. note::
+
+    **Web Applications & Multi-Threading (e.g. Flask):** Unlike the original
+    TinyDB, this fork is fully thread-safe. You can safely share and access
+    database instances across threads in multi-threaded web applications like
+    Flask with zero changes in API usage. Multi-process write concurrency across
+    separate OS processes is still not supported without external locking.
 
 To put it plainly: If you need advanced features or high performance, TinyDB
 is the wrong database for you – consider using databases like SQLite_, Buzhug_,
