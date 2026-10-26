@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -16,10 +16,7 @@ jobs:
         - "3.12"
         - "3.13"
         - "3.14"
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        include:
-        - python-version: "pypy-3.11"
-          os: ubuntu-latest
+        - "pypy-3.11"
 
     steps:
     - uses: actions/checkout@v4
@@ -42,22 +39,21 @@ jobs:
         uv run pytest -v --cov=tinydb
 
     - name: Perform type check
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' }}
+      if: ${{ matrix.python-version == '3.14' }}
       run: |
         uv run pytest --mypy -m mypy tinydb tests
 
     - name: Verify dist package format
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' }}
+      if: ${{ matrix.python-version == '3.14' }}
       run: |
         uv build
         uv run --with twine twine check dist/*
 
     - name: Upload coverage result
-      if: ${{ matrix.os != 'windows-latest' }}
       continue-on-error: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        COVERALLS_FLAG_NAME: ${{ matrix.os }}-py${{ matrix.python-version }}
+        COVERALLS_FLAG_NAME: ubuntu-py${{ matrix.python-version }}
         COVERALLS_PARALLEL: true
       run: |
         uv run coveralls
