@@ -19,6 +19,16 @@ see `semver.org <http://semver.org/>`_
           syntax (``Query()['some']['nested']['field']``) that will
           not break even when new methods are added to the ``Query`` API.
 
+v4.10.0 (2026-10-26)
+^^^^^^^^^^^^^^^^^^^
+
+- Forked as **TinyDB-Safe**: a 100% drop-in, thread-safe replacement for TinyDB.
+- **Thread Safety**: Built-in concurrency support across tables, storages,
+  and query caches, enabling safe usage across multi-threaded applications.
+- **Drop official support for Python 3.10 and earlier**: Now requires Python 3.11
+  or later.
+- Modernized packaging and CI pipelines with uv and GitHub Actions.
+
 v4.9.0 (2026-08-06)
 ^^^^^^^^^^^^^^^^^^^
 
