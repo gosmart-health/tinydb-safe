@@ -6,6 +6,7 @@ implementations.
 import io
 import json
 import os
+import threading
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Optional
@@ -43,6 +44,18 @@ class Storage(ABC):
 
     # Using ABCMeta as metaclass allows instantiating only storages that have
     # implemented read and write
+
+    def __init__(self) -> None:
+        self._lock = threading.RLock()
+
+    @property
+    def lock(self) -> threading.RLock:
+        """
+        Return the reentrant lock used to synchronize access to this storage.
+        """
+        if not hasattr(self, '_lock'):
+            self._lock = threading.RLock()
+        return self._lock
 
     @abstractmethod
     def read(self) -> Optional[dict[str, dict[str, Any]]]:
@@ -120,45 +133,48 @@ class JSONStorage(Storage):
         self._handle = open(path, mode=self._mode, encoding=encoding)
 
     def close(self) -> None:
-        self._handle.close()
+        with self.lock:
+            self._handle.close()
 
     def read(self) -> Optional[dict[str, dict[str, Any]]]:
-        # Get the file size by moving the cursor to the file end and reading
-        # its location
-        self._handle.seek(0, os.SEEK_END)
-        size = self._handle.tell()
+        with self.lock:
+            # Get the file size by moving the cursor to the file end and reading
+            # its location
+            self._handle.seek(0, os.SEEK_END)
+            size = self._handle.tell()
 
-        if not size:
-            # File is empty, so we return ``None`` so TinyDB can properly
-            # initialize the database
-            return None
-        else:
-            # Return the cursor to the beginning of the file
-            self._handle.seek(0)
+            if not size:
+                # File is empty, so we return ``None`` so TinyDB can properly
+                # initialize the database
+                return None
+            else:
+                # Return the cursor to the beginning of the file
+                self._handle.seek(0)
 
-            # Load the JSON contents of the file
-            return json.load(self._handle)
+                # Load the JSON contents of the file
+                return json.load(self._handle)
 
     def write(self, data: dict[str, dict[str, Any]]):
-        # Move the cursor to the beginning of the file just in case
-        self._handle.seek(0)
+        with self.lock:
+            # Move the cursor to the beginning of the file just in case
+            self._handle.seek(0)
 
-        # Serialize the database state using the user-provided arguments
-        serialized = json.dumps(data, **self.kwargs)
+            # Serialize the database state using the user-provided arguments
+            serialized = json.dumps(data, **self.kwargs)
 
-        # Write the serialized data to the file
-        try:
-            self._handle.write(serialized)
-        except io.UnsupportedOperation:
-            raise IOError('Cannot write to the database. Access mode is "{0}"'.format(self._mode))
+            # Write the serialized data to the file
+            try:
+                self._handle.write(serialized)
+            except io.UnsupportedOperation:
+                raise IOError('Cannot write to the database. Access mode is "{0}"'.format(self._mode))
 
-        # Ensure the file has been written
-        self._handle.flush()
-        os.fsync(self._handle.fileno())
+            # Ensure the file has been written
+            self._handle.flush()
+            os.fsync(self._handle.fileno())
 
-        # Remove data that is behind the new cursor in case the file has
-        # gotten shorter
-        self._handle.truncate()
+            # Remove data that is behind the new cursor in case the file has
+            # gotten shorter
+            self._handle.truncate()
 
 
 class MemoryStorage(Storage):
@@ -175,7 +191,9 @@ class MemoryStorage(Storage):
         self.memory = None
 
     def read(self) -> Optional[dict[str, dict[str, Any]]]:
-        return self.memory
+        with self.lock:
+            return self.memory
 
     def write(self, data: dict[str, dict[str, Any]]):
-        self.memory = data
+        with self.lock:
+            self.memory = data

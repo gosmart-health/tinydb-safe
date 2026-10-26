@@ -2,6 +2,7 @@
 Contains the :class:`base class <tinydb.middlewares.Middleware>` for
 middlewares and implementations.
 """
+import threading
 from typing import Optional
 
 from tinydb import Storage
@@ -21,6 +22,20 @@ class Middleware:
     def __init__(self, storage_cls) -> None:
         self._storage_cls = storage_cls
         self.storage: Storage = None  # type: ignore
+        self._lock = threading.RLock()
+
+    @property
+    def lock(self) -> threading.RLock:
+        """
+        Return the reentrant lock used to synchronize access to this
+        middleware and its underlying storage.
+        """
+        storage = self.__dict__.get('storage')
+        if storage is not None and hasattr(storage, 'lock'):
+            return storage.lock
+        if not hasattr(self, '_lock'):
+            self._lock = threading.RLock()
+        return self._lock
 
     def __call__(self, *args, **kwargs):
         """
@@ -95,48 +110,52 @@ class CachingMiddleware(Middleware):
         self._closed = False
 
     def read(self):
-        if self._closed:
-            raise ValueError('I/O operation on closed storage')
+        with self.lock:
+            if self._closed:
+                raise ValueError('I/O operation on closed storage')
 
-        if self.cache is None:
-            # Empty cache: read from the storage
-            self.cache = self.storage.read()
+            if self.cache is None:
+                # Empty cache: read from the storage
+                self.cache = self.storage.read()
 
-        # Return the cached data
-        return self.cache
+            # Return the cached data
+            return self.cache
 
     def write(self, data):
-        if self._closed:
-            raise ValueError('I/O operation on closed storage')
+        with self.lock:
+            if self._closed:
+                raise ValueError('I/O operation on closed storage')
 
-        # Store data in cache
-        self.cache = data
-        self._cache_modified_count += 1
+            # Store data in cache
+            self.cache = data
+            self._cache_modified_count += 1
 
-        # Check if we need to flush the cache
-        if self._cache_modified_count >= self.WRITE_CACHE_SIZE:
-            self.flush()
+            # Check if we need to flush the cache
+            if self._cache_modified_count >= self.WRITE_CACHE_SIZE:
+                self.flush()
 
     def flush(self):
         """
         Flush all unwritten data to disk.
         """
-        if self._closed:
-            raise ValueError('I/O operation on closed storage')
+        with self.lock:
+            if self._closed:
+                raise ValueError('I/O operation on closed storage')
 
-        if self._cache_modified_count > 0:
-            # Force-flush the cache by writing the data to the storage
-            self.storage.write(self.cache)
-            self._cache_modified_count = 0
+            if self._cache_modified_count > 0:
+                # Force-flush the cache by writing the data to the storage
+                self.storage.write(self.cache)
+                self._cache_modified_count = 0
 
     def close(self):
-        if self._closed:
-            return
+        with self.lock:
+            if self._closed:
+                return
 
-        # Flush potentially unwritten data
-        self.flush()
+            # Flush potentially unwritten data
+            self.flush()
 
-        # Let the storage clean up too
-        self.storage.close()
-        self._closed = True
-        self.cache = None
+            # Let the storage clean up too
+            self.storage.close()
+            self._closed = True
+            self.cache = None

@@ -1,9 +1,10 @@
 [project]
-name = "tinydb"
-version = "4.9.0"
-description = "TinyDB is a tiny, document oriented database optimized for your happiness :)"
-authors = [{ name = "Markus Siemens", email = "markus@m-siemens.de" }]
-requires-python = ">=3.10,<4"
+name = "tinydb-safe"
+version = "4.10.0"
+description = "TinyDB is a tiny, document oriented database optimized for your happiness with thread safety :)"
+authors = [{ name = "Markus Siemens", email = "markus@m-siemens.de" },
+    { name = "Manabu Tokunaga", email = "manabu@gosmart.health" }]
+requires-python = ">=3.11,<4"
 readme = "README.rst"
 license = "MIT"
 keywords = [
@@ -19,7 +20,6 @@ classifiers = [
     "Topic :: Database :: Database Engines/Servers",
     "Topic :: Utilities",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -31,10 +31,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/msiemens/tinydb"
+Homepage = "https://github.com/gosmart-health/tinydb-safe"
 Documentation = "https://tinydb.readthedocs.org/"
 Changelog = "https://tinydb.readthedocs.io/en/latest/changelog.html"
-Issues = "https://github.com/msiemens/tinydb/issues"
+Issues = "https://github.com/gosmart-health/tinydb-safe/issues"
+"Original Repository" = "https://github.com/msiemens/tinydb"
 
 [dependency-groups]
 dev = [
