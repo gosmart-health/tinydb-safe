@@ -131,7 +131,7 @@ def test_concurrent_insert_unique_ids(tmpdir, storage_mode):
 
         batch_ids = db.insert_multiple([
             {'thread': idx, 'batch': 0},
-            Document({'thread': idx, 'explicit': True}, doc_id=10000 + idx),
+            Document({'thread': idx, 'explicit': True}, doc_id=10000 + idx * 100),
             {'thread': idx, 'batch': 1},
         ])
         local_ids.extend(batch_ids)
